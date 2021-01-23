@@ -54,6 +54,8 @@ jobs:
     steps:
       - get-skopeo: |
           store-cli get ./bin/skopeo --type=cache --scope=event
+          ls -lrt ./bin/skopeo
+          ./bin/skopeo -v
       - get-version: |
           CURRENT_VERSION=$( curl -s -u$BINTRAY_USER:$BINTRAY_APIKEY https://api.bintray.com/packages/screwdrivercd/screwdrivercd/$PACKAGE/versions/_latest | jq -r '.name' )
           NEW_VERSION=$( ${SD_SOURCE_DIR}/scripts/get_version.sh patch ${CURRENT_VERSION})
