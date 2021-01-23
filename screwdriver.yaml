@@ -25,15 +25,30 @@ jobs:
     requires: [~install]
     image: node:12
     steps:
+      - install: |
+          yum install -y epel-release
+          yum install -y jq
       - get: |
           store-cli get ./bin/skopeo --type=cache --scope=event
           ls -lrt ./bin
       - node12-sha256: |
-          ./bin/skopeo inspect docker://docker.io/node:12
+          DIGEST=$( ./bin/skopeo inspect docker://docker.io/node:12 | jq -r '.Digest')
+          if [[ -z $DIGEST ]]; then
+            echo "unable to get image node:12 sha256 digest"
+            exit 1
+          fi
       - alpine-sha256: |
-          ./bin/skopeo inspect docker://docker.io/alpine:latest
+          DIGEST=$( ./bin/skopeo inspect docker://docker.io/alpine:latest | jq -r '.Digest')
+          if [[ -z $DIGEST ]]; then
+            echo "unable to get image alpine:latest sha256 digest"
+            exit 1
+          fi
       - busybox-sha256: |
-          ./bin/skopeo inspect docker://docker.io/busybox:latest
+          DIGEST=$( ./bin/skopeo inspect docker://docker.io/busybox:latest | jq -r '.Digest')
+          if [[ -z $DIGEST ]]; then
+            echo "unable to get image busybox:latest sha256 digest"
+            exit 1
+          fi
   upload:
     requires: [~test]
     steps:
