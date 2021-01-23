@@ -4,11 +4,6 @@ shared:
     PACKAGE: skopeo
 
 jobs:
-  pull-request:
-    requires: [~pr]
-    steps:
-      - build: echo "skip build"
-
   install:
     requires: [~pr, ~commit]
     environment:
@@ -48,7 +43,7 @@ jobs:
           CURRENT_VERSION=$( curl -s -u$BINTRAY_USER:$BINTRAY_APIKEY https://api.bintray.com/packages/screwdrivercd/screwdrivercd/$PACKAGE/versions/_latest | jq -r '.name' )
           NEW_VERSION=$( ${SD_SOURCE_DIR}/scripts/get_version.sh patch ${CURRENT_VERSION})
           if [[ -z $NEW_VERSION ]]; then
-            echo "not able to get new version"
+            echo "unable to get new version $NEW_VERSION"
             exit 1
           fi
       - upload: |
