@@ -9,7 +9,7 @@ jobs:
     environment:
       PACKAGE: skopeo
     steps:
-      - setup: |
+      - install: |
           yum install -y epel-release
           yum install -y wget git make gcc gcc-c++ jq
           wget -q -O go1.15.6.tar.gz https://golang.org/dl/go1.15.6.linux-amd64.tar.gz
