@@ -1,0 +1,61 @@
+shared:
+  image: centos:centos7
+  environment:
+    PACKAGE: skopeo
+
+jobs:
+  pull-request:
+    requires: [~pr]
+    steps:
+      - build: echo "skip build"
+
+  install:
+    requires: [~pr, ~commit]
+    environment:
+      PACKAGE: skopeo
+    steps:
+      - setup: |
+          yum install -y epel-release
+          yum install -y wget git make gcc gcc-c++ jq
+          wget -q -O go1.15.6.tar.gz https://golang.org/dl/go1.15.6.linux-amd64.tar.gz
+          tar -C /usr/local -xzf go1.15.6.tar.gz
+          mkdir /go && cd /go
+          export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
+          git clone https://github.com/containers/skopeo $GOPATH/src/github.com/containers/skopeo
+          cd $GOPATH/src/github.com/containers/skopeo && make DISABLE_CGO=1 bin/${PACKAGE}
+          chmod +x bin/${PACKAGE}
+          store-cli set ./bin/skopeo --type=cache --scope=event
+          ./bin/skopeo -v
+  test:
+    requires: [~install]
+    image: node:12
+    steps:
+      - get: |
+          store-cli get ./bin/skopeo --type=cache --scope=event
+          ls -lrt ./bin
+      - node12-sha256: |
+          ./bin/skopeo inspect docker://docker.io/node:12
+      - alpine-sha256: |
+          ./bin/skopeo inspect docker://docker.io/alpine:latest
+      - busybox-sha256: |
+          ./bin/skopeo inspect docker://docker.io/busybox:latest
+  upload:
+    requires: [~test]
+    steps:
+      - get-skopeo: |
+          store-cli get ./bin/skopeo --type=cache --scope=event
+      - get-version: |
+          CURRENT_VERSION=$( curl -s -u$BINTRAY_USER:$BINTRAY_APIKEY https://api.bintray.com/packages/screwdrivercd/screwdrivercd/$PACKAGE/versions/_latest | jq -r '.name' )
+          NEW_VERSION=$( ${SD_SOURCE_DIR}/scripts/get_version.sh -p ${CURRENT_VERSION})
+          if [[ -z $NEW_VERSION ]]; then
+            echo "not able to get new version"
+            exit 1
+          fi
+      - upload: |
+          echo "current version: ${CURRENT_VERSION}"
+          echo "new version: ${NEW_VERSION}"
+          tar -czvf ./bin/${PACKAGE}-${NEW_VERSION}-linux.tar.gz ./bin/${PACKAGE}
+          ##curl --show-error --fail -T ./bin/${PACKAGE}-${VERSION}-linux.tar.gz -u${BINTRAY_USER}:${BINTRAY_APIKEY} https://api.bintray.com/content/screwdrivercd/screwdrivercd/${PACKAGE}/${VERSION}/${PACKAGE}-${VERSION}-linux.tar.gz?publish=1
+    secrets:
+      - BINTRAY_USER
+      - BINTRAY_APIKEY
