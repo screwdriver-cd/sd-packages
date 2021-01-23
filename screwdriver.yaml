@@ -55,7 +55,7 @@ jobs:
           echo "current version: ${CURRENT_VERSION}"
           echo "new version: ${NEW_VERSION}"
           tar -czvf ./bin/${PACKAGE}-${NEW_VERSION}-linux.tar.gz ./bin/${PACKAGE}
-          ##curl --show-error --fail -T ./bin/${PACKAGE}-${VERSION}-linux.tar.gz -u${BINTRAY_USER}:${BINTRAY_APIKEY} https://api.bintray.com/content/screwdrivercd/screwdrivercd/${PACKAGE}/${VERSION}/${PACKAGE}-${VERSION}-linux.tar.gz?publish=1
+          curl --show-error --fail -T ./bin/${PACKAGE}-${VERSION}-linux.tar.gz -u${BINTRAY_USER}:${BINTRAY_APIKEY} https://api.bintray.com/content/screwdrivercd/screwdrivercd/${PACKAGE}/${VERSION}/${PACKAGE}-${VERSION}-linux.tar.gz?publish=1
     secrets:
       - BINTRAY_USER
       - BINTRAY_APIKEY
