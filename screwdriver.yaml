@@ -22,7 +22,7 @@ jobs:
           store-cli set ./bin/skopeo --type=cache --scope=event
           ./bin/skopeo -v
   test:
-    requires: [~pr, ~install]
+    requires: [~install]
     image: node:12
     steps:
       - install: |
