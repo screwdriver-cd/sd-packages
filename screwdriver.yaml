@@ -83,7 +83,7 @@ jobs:
           cd pigz-2.5
           make
           chmod +x pigz unpigz
-          store-cli set ./${PIGZ_PACKAGE} ./${UNPIGZ_PACKAGE} --type=cache --scope=event
+          store-cli set ./${PIGZ_PACKAGE} --type=cache --scope=event
           store-cli set ./${UNPIGZ_PACKAGE} --type=cache --scope=event
           ./pigz --version
           ./unpigz --version
