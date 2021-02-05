@@ -1,35 +1,35 @@
 shared:
   image: centos:centos7
   environment:
-    PACKAGE: skopeo
+    SKOPEO_PACKAGE: skopeo
+    PIGZ_PACKAGE: pigz
+    UNPIGZ_PACKAGE: unpigz
 
 jobs:
-  install:
+  install-skopeo:
     requires: [~pr, ~commit]
-    environment:
-      PACKAGE: skopeo
     steps:
       - install: |
           yum install -y epel-release
           yum install -y wget git make gcc gcc-c++ jq
           wget -q -O go1.15.6.tar.gz https://golang.org/dl/go1.15.6.linux-amd64.tar.gz
-          tar -C /usr/local -xzf go1.15.6.tar.gz
+          tar -C /usr/local -oxzf go1.15.6.tar.gz
           mkdir /go && cd /go
           export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
-          git clone https://github.com/containers/skopeo $GOPATH/src/github.com/containers/skopeo
-          cd $GOPATH/src/github.com/containers/skopeo && make DISABLE_CGO=1 bin/${PACKAGE}
-          chmod +x bin/${PACKAGE}
-          store-cli set ./bin/skopeo --type=cache --scope=event
-          ./bin/skopeo -v
-  test:
-    requires: [~install]
+          git clone https://github.com/containers/${SKOPEO_PACKAGE} $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
+          cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE} && make DISABLE_CGO=1 bin/${SKOPEO_PACKAGE}
+          chmod +x bin/${SKOPEO_PACKAGE}
+          store-cli set ./bin/${SKOPEO_PACKAGE} --type=cache --scope=event
+          ./bin/${SKOPEO_PACKAGE} -v
+  test-skopeo:
+    requires: [~install-skopeo]
     image: node:12
     steps:
       - install: |
           yum install -y epel-release
           yum install -y jq
       - get: |
-          store-cli get ./bin/skopeo --type=cache --scope=event
+          store-cli get ./bin/${SKOPEO_PACKAGE} --type=cache --scope=event
           ls -lrt ./bin
       - node12-sha256: |
           DIGEST=$( ./bin/skopeo inspect docker://docker.io/node:12 | jq -r '.Digest')
@@ -38,26 +38,26 @@ jobs:
             exit 1
           fi
       - alpine-sha256: |
-          DIGEST=$( ./bin/skopeo inspect docker://docker.io/alpine:latest | jq -r '.Digest')
+          DIGEST=$( ./bin/${SKOPEO_PACKAGE} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image alpine:latest sha256 digest"
             exit 1
           fi
       - busybox-sha256: |
-          DIGEST=$( ./bin/skopeo inspect docker://docker.io/busybox:latest | jq -r '.Digest')
+          DIGEST=$( ./bin/${SKOPEO_PACKAGE} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image busybox:latest sha256 digest"
             exit 1
           fi
-  upload:
-    requires: [~test]
+  upload-skopeo:
+    requires: [~test-skopeo]
     steps:
       - get-skopeo: |
-          store-cli get ./bin/skopeo --type=cache --scope=event
-          ls -lrt ./bin/skopeo
+          store-cli get ./bin/${SKOPEO_PACKAGE} --type=cache --scope=event
+          ls -lrt ./bin/${SKOPEO_PACKAGE}
           ./bin/skopeo -v
       - get-version: |
-          CURRENT_VERSION=$( curl -s -u$BINTRAY_USER:$BINTRAY_APIKEY https://api.bintray.com/packages/screwdrivercd/screwdrivercd/$PACKAGE/versions/_latest | jq -r '.name' )
+          CURRENT_VERSION=$( curl -s -u$BINTRAY_USER:$BINTRAY_APIKEY https://api.bintray.com/packages/screwdrivercd/screwdrivercd/${SKOPEO_PACKAGE}/versions/_latest | jq -r '.name' )
           NEW_VERSION=$( ${SD_SOURCE_DIR}/scripts/get_version.sh patch ${CURRENT_VERSION})
           if [[ -z $NEW_VERSION ]]; then
             echo "unable to get new version $NEW_VERSION"
@@ -66,8 +66,69 @@ jobs:
       - upload: |
           echo "current version: ${CURRENT_VERSION}"
           echo "new version: ${NEW_VERSION}"
-          tar -czvf ./bin/${PACKAGE}-${NEW_VERSION}-linux.tar.gz ./bin/${PACKAGE}
-          curl --show-error --fail -T ./bin/${PACKAGE}-${VERSION}-linux.tar.gz -u${BINTRAY_USER}:${BINTRAY_APIKEY} https://api.bintray.com/content/screwdrivercd/screwdrivercd/${PACKAGE}/${VERSION}/${PACKAGE}-${VERSION}-linux.tar.gz?publish=1
+          tar -czvf ./bin/${PACKAGE}-${NEW_VERSION}-linux.tar.gz ./bin/${SKOPEO_PACKAGE}
+          curl --show-error --fail -T ./bin/${SKOPEO_PACKAGE}-${VERSION}-linux.tar.gz -u${BINTRAY_USER}:${BINTRAY_APIKEY} https://api.bintray.com/content/screwdrivercd/screwdrivercd/${SKOPEO_PACKAGE}/${VERSION}/${SKOPEO_PACKAGE}-${VERSION}-linux.tar.gz?publish=1
+    secrets:
+      - BINTRAY_USER
+      - BINTRAY_APIKEY
+
+  install-pigz:
+    requires: [~pr, ~commit]
+    steps:
+      - install: |
+          yum install -y epel-release
+          yum install -y zlib-devel
+          wget -q -O pigz2.5.tar.gz https://zlib.net/pigz/pigz-2.5.tar.gz
+          tar -C . -oxzf pigz2.5.tar.gz
+          cd pigz-2.5
+          make
+          chmod +x pigz unpigz
+          store-cli set ./${PIGZ_PACKAGE} ./${UNPIGZ_PACKAGE} --type=cache --scope=event
+          store-cli set ./${UNPIGZ_PACKAGE} --type=cache --scope=event
+          ./pigz --version
+          ./unpigz --version
+  upload-pigz:
+    requires: [~install-pigz]
+    steps:
+      - get-pigz: |
+          store-cli get ./${PIGZ_PACKAGE} --type=cache --scope=event
+          ls -lrt ./${PIGZ_PACKAGE}
+          ./${PIGZ_PACKAGE} --version
+      - get-version: |
+          CURRENT_VERSION=$( curl -s -u$BINTRAY_USER:$BINTRAY_APIKEY https://api.bintray.com/packages/screwdrivercd/screwdrivercd/${PIGZ_PACKAGE}/versions/_latest | jq -r '.name' )
+          NEW_VERSION=$( ${SD_SOURCE_DIR}/scripts/get_version.sh patch ${CURRENT_VERSION})
+          if [[ -z $NEW_VERSION ]]; then
+            echo "unable to get new version $NEW_VERSION"
+            exit 1
+          fi
+      - upload: |
+          echo "current version: ${CURRENT_VERSION}"
+          echo "new version: ${NEW_VERSION}"
+          tar -czvf ./bin/${PIGZ_PACKAGE}-${NEW_VERSION}-linux.tar.gz ./bin/${PIGZ_PACKAGE}
+          curl --show-error --fail -T ./bin/${PIGZ_PACKAGE}-${VERSION}-linux.tar.gz -u${BINTRAY_USER}:${BINTRAY_APIKEY} https://api.bintray.com/content/screwdrivercd/screwdrivercd/${PIGZ_PACKAGE}/${VERSION}/${PIGZ_PACKAGE}-${VERSION}-linux.tar.gz?publish=1
+    secrets:
+      - BINTRAY_USER
+      - BINTRAY_APIKEY
+
+  upload-unpigz:
+    requires: [~install-pigz]
+    steps:
+      - get-unpigz: |
+          store-cli get ./${UNPIGZ_PACKAGE} --type=cache --scope=event
+          ls -lrt ./${UNPIGZ_PACKAGE}
+          ./${UNPIGZ_PACKAGE} --version
+      - get-version: |
+          CURRENT_VERSION=$( curl -s -u$BINTRAY_USER:$BINTRAY_APIKEY https://api.bintray.com/packages/screwdrivercd/screwdrivercd/${UNPIGZ_PACKAGE}/versions/_latest | jq -r '.name' )
+          NEW_VERSION=$( ${SD_SOURCE_DIR}/scripts/get_version.sh patch ${CURRENT_VERSION})
+          if [[ -z $NEW_VERSION ]]; then
+            echo "unable to get new version $NEW_VERSION"
+            exit 1
+          fi
+      - upload: |
+          echo "current version: ${CURRENT_VERSION}"
+          echo "new version: ${NEW_VERSION}"
+          tar -czvf ./bin/${UNPIGZ_PACKAGE}-${NEW_VERSION}-linux.tar.gz ./bin/${UNPIGZ_PACKAGE}
+          curl --show-error --fail -T ./bin/${UNPIGZ_PACKAGE}-${VERSION}-linux.tar.gz -u${BINTRAY_USER}:${BINTRAY_APIKEY} https://api.bintray.com/content/screwdrivercd/screwdrivercd/${UNPIGZ_PACKAGE}/${VERSION}/${UNPIGZ_PACKAGE}-${VERSION}-linux.tar.gz?publish=1
     secrets:
       - BINTRAY_USER
       - BINTRAY_APIKEY
