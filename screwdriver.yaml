@@ -77,7 +77,7 @@ jobs:
     steps:
       - install: |
           yum install -y epel-release
-          yum install -y zlib-devel
+          yum install -y zlib-devel wget make gcc gcc-c++ jq
           wget -q -O pigz2.5.tar.gz https://zlib.net/pigz/pigz-2.5.tar.gz
           tar -C . -oxzf pigz2.5.tar.gz
           cd pigz-2.5
