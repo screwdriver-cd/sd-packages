@@ -82,7 +82,7 @@ jobs:
           make
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
-          store-cli set ./bin/${ZSTD_PACKAGE} --type=cache --scope=event
+          store-cli set ./${ZSTD_PACKAGE} --type=cache --scope=event
 
   zstd-publish:
     requires: [~zstd-build]
