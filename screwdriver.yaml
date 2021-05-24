@@ -59,7 +59,7 @@ jobs:
       - get: |
           store-cli get ./bin/${SKOPEO_PACKAGE} --type=cache --scope=event
           ls -lrt ./bin/${SKOPEO_PACKAGE}
-          ./bin/skopeo -v
+          ./bin/${SKOPEO_PACKAGE} -v
       - tag: ./ci/git-tag.sh
       - package: tar -C dist -cvzf $RELEASE_FILE .
       - publish: ./ci/git-release.sh
@@ -78,11 +78,10 @@ jobs:
           yum install -y zlib-devel wget make gcc gcc-c++ jq
           wget -q -O zstd-1.5.0.tar.gz https://github.com/facebook/zstd/releases/download/v1.5.0/zstd-1.5.0.tar.gz
           tar -C . -oxzf zstd-1.5.0.tar.gz
-          cd zstd-1.5
+          cd zstd-1.5.0
           make
-          chmod +x ${ZSTD_PACKAGE}
+          chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
-          chmod +x bin/${ZSTD_PACKAGE}
           store-cli set ./bin/${ZSTD_PACKAGE} --type=cache --scope=event
 
   zstd-publish:
