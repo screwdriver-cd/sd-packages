@@ -1,0 +1,106 @@
+shared:
+  image: node:12
+  environment:
+    SKOPEO_PACKAGE: skopeo
+    ZSTD_PACKAGE: zstd
+    ZSTD_VERSION: 1.5.0
+
+jobs:
+  skopeo-build:
+    requires: [~pr, ~commit]
+    image: centos:centos7
+    steps:
+      - make: |
+          yum install -y epel-release
+          yum install -y wget git make gcc gcc-c++ jq
+          wget -q -O go1.15.6.tar.gz https://golang.org/dl/go1.15.6.linux-amd64.tar.gz
+          tar -C /usr/local -oxzf go1.15.6.tar.gz
+          mkdir /go && cd /go
+          export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
+          git clone https://github.com/containers/${SKOPEO_PACKAGE} $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
+          cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE} && make DISABLE_CGO=1 bin/${SKOPEO_PACKAGE}
+          chmod +x bin/${SKOPEO_PACKAGE}
+          store-cli set ./bin/${SKOPEO_PACKAGE} --type=cache --scope=event
+          ./bin/${SKOPEO_PACKAGE} -v
+
+  skopeo-test:
+    requires: [~skopeo-build]
+    steps:
+      - install: |
+          yum install -y epel-release
+          yum install -y jq
+      - get: |
+          store-cli get ./bin/${SKOPEO_PACKAGE} --type=cache --scope=event
+          ls -lrt ./bin
+      - node12-sha256: |
+          DIGEST=$( ./bin/skopeo inspect docker://docker.io/node:12 | jq -r '.Digest')
+          if [[ -z $DIGEST ]]; then
+            echo "unable to get image node:12 sha256 digest"
+            exit 1   v
+          fi
+      - alpine-sha256: |
+          DIGEST=$( ./bin/${SKOPEO_PACKAGE} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
+          if [[ -z $DIGEST ]]; then
+            echo "unable to get image alpine:latest sha256 digest"
+            exit 1
+          fi
+      - busybox-sha256: |
+          DIGEST=$( ./bin/${SKOPEO_PACKAGE} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
+          if [[ -z $DIGEST ]]; then
+            echo "unable to get image busybox:latest sha256 digest"
+            exit 1
+          fi
+
+  skopeo-publish:
+    requires: [~skopeo-test]
+    environment:
+      RELEASE_FILE: skopeo-linux.tar.gz
+    steps:
+      - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
+      - get: |
+          store-cli get ./bin/${SKOPEO_PACKAGE} --type=cache --scope=event
+          ls -lrt ./bin/${SKOPEO_PACKAGE}
+          ./bin/${SKOPEO_PACKAGE} -v
+      - tag: ./ci/git-tag.sh
+      - package: tar -C dist -cvzf $RELEASE_FILE .
+      - publish: ./ci/git-release.sh
+    secrets:
+        # Pushing tags to Git
+        - GIT_KEY
+        # Pushing releases to GitHub
+        - GITHUB_TOKEN
+
+  zstd-build:
+    requires: [~pr, ~commit]
+    image: centos:centos7
+    steps:
+      - make: |
+          yum install -y epel-release
+          yum install -y zlib-devel wget make gcc gcc-c++ jq
+          wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
+          tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
+          cd zstd-${ZSTD_VERSION}
+          make
+          chmod +x ./${ZSTD_PACKAGE}
+          ./${ZSTD_PACKAGE} --version
+          store-cli set ./${ZSTD_PACKAGE} --type=cache --scope=event
+
+  zstd-publish:
+    requires: [~zstd-build]
+    environment:
+      RELEASE_FILE : zstd-cli-linux.tar.gz
+    steps:
+      - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
+      - get: |
+          store-cli get ./${ZSTD_PACKAGE} --type=cache --scope=event
+          ls -lrt ./${ZSTD_PACKAGE}
+          ./${ZSTD_PACKAGE} -v
+      - tag: ./ci/git-tag.sh
+      - package: tar -C dist -cvzf $RELEASE_FILE .
+      - publish: ./ci/git-release.sh
+    secrets:
+    # Pushing tags to Git
+    - GIT_KEY
+    # Pushing releases to GitHub
+    - GITHUB_TOKEN
+
