@@ -1,5 +1,5 @@
 shared:
-  image: node:12
+  image: centos:centos7
   environment:
     SKOPEO_PACKAGE: skopeo
     ZSTD_PACKAGE: zstd
@@ -8,7 +8,6 @@ shared:
 jobs:
   skopeo-build:
     requires: [~pr, ~commit]
-    image: centos:centos7
     steps:
       - make: |
           yum install -y epel-release
@@ -53,6 +52,7 @@ jobs:
 
   skopeo-publish:
     requires: [~skopeo-test]
+    image: node:12
     environment:
       RELEASE_FILE: skopeo-linux.tar.gz
     steps:
@@ -72,7 +72,6 @@ jobs:
 
   zstd-build:
     requires: [~pr, ~commit]
-    image: centos:centos7
     steps:
       - make: |
           yum install -y epel-release
@@ -87,6 +86,7 @@ jobs:
 
   zstd-publish:
     requires: [~zstd-build]
+    image: node:12
     environment:
       RELEASE_FILE : zstd-cli-linux.tar.gz
     steps:
@@ -94,6 +94,7 @@ jobs:
       - get: |
           store-cli get ./${ZSTD_PACKAGE} --type=cache --scope=event
           ls -lrt ./${ZSTD_PACKAGE}
+          chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} -v
       - tag: ./ci/git-tag.sh
       - package: tar -C dist -cvzf $RELEASE_FILE .
