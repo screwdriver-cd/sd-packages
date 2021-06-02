@@ -73,7 +73,7 @@ jobs:
   zstd:
     requires: [~pr, ~commit]
     environment:
-      RELEASE_FILE : zstd.tar.gz
+      RELEASE_FILE : zstd-cli-linux.tar.gz
     steps:
       - make: |
           yum install -y epel-release
@@ -86,8 +86,7 @@ jobs:
           ./${ZSTD_PACKAGE} --version
       - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
       - tag: ./ci/git-tag.sh
-      - list: ls
-      - package: tar -C dist -cvzf $RELEASE_FILE .
+      - package: tar -czf ${RELEASE_FILE} ./${ZSTD_PACKAGE}
       - publish: ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
