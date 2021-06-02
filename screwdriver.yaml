@@ -75,10 +75,9 @@ jobs:
     environment:
       RELEASE_FILE : zstd.tar.gz
     steps:
-      - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
       - make: |
           yum install -y epel-release
-          yum install -y zlib-devel wget make gcc gcc-c++ jq
+          yum install -y zlib-devel wget git make gcc gcc-c++ jq
           dnf module install nodejs:12
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
@@ -86,6 +85,7 @@ jobs:
           make
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
+      - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
       - tag: ./ci/git-tag.sh
       - list: ls
       - package: tar -C dist -cvzf $RELEASE_FILE .
