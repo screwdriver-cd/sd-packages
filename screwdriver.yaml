@@ -87,7 +87,9 @@ jobs:
       - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
       - tag: ./ci/git-tag.sh
       - package: tar -czf ${RELEASE_FILE} ./${ZSTD_PACKAGE}
-      - publish: ./ci/git-release.sh
+      - publish: |
+          echo $RELEASE_FILE
+          ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
       - GIT_KEY_BASE64
