@@ -65,10 +65,10 @@ jobs:
       - package: tar -C dist -cvzf $RELEASE_FILE .
       - publish: ./ci/git-release.sh
     secrets:
-        # Pushing tags to Git
-        - GIT_KEY
-        # Pushing releases to GitHub
-        - GITHUB_TOKEN
+      # Pushing tags to Git
+      - GIT_KEY_BASE64
+      # Pushing releases to GitHub
+      - GITHUB_TOKEN
 
   zstd-build:
     requires: [~pr, ~commit]
@@ -94,14 +94,13 @@ jobs:
       - get: |
           store-cli get ./${ZSTD_PACKAGE} --type=cache --scope=event
           ls -lrt ./${ZSTD_PACKAGE}
-          chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} -v
       - tag: ./ci/git-tag.sh
       - package: tar -C dist -cvzf $RELEASE_FILE .
       - publish: ./ci/git-release.sh
     secrets:
-    # Pushing tags to Git
-    - GIT_KEY
-    # Pushing releases to GitHub
-    - GITHUB_TOKEN
+      # Pushing tags to Git
+      - GIT_KEY_BASE64
+      # Pushing releases to GitHub
+      - GITHUB_TOKEN
 
