@@ -41,8 +41,8 @@ jobs:
             exit 1
           fi
       - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-      - tag: ./ci/git-tag.sh
       - package: tar -czf ${RELEASE_FILE} ./bin/${SKOPEO_PACKAGE}
+      - tag: ./ci/git-tag.sh
       - publish: ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
@@ -65,11 +65,9 @@ jobs:
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
       - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-      - tag: ./ci/git-tag.sh
       - package: tar -czf ${RELEASE_FILE} ./${ZSTD_PACKAGE}
-      - publish: |
-          echo $RELEASE_FILE
-          ./ci/git-release.sh
+      - tag: ./ci/git-tag.sh
+      - publish: ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
       - GIT_KEY_BASE64
