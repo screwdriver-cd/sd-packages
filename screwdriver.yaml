@@ -77,8 +77,7 @@ jobs:
     steps:
       - make: |
           yum install -y epel-release
-          yum install -y zlib-devel wget git make gcc gcc-c++ jq
-          dnf module install nodejs:12
+          yum install -y zlib-devel wget git make gcc gcc-c++ jq nodejs12
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
           cd zstd-${ZSTD_VERSION}
