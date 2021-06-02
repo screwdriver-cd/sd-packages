@@ -94,6 +94,7 @@ jobs:
       - get: |
           store-cli get ./${ZSTD_PACKAGE} --type=cache --scope=event
           ls -lrt ./${ZSTD_PACKAGE}
+          chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} -v
       - tag: ./ci/git-tag.sh
       - package: tar -C dist -cvzf $RELEASE_FILE .
