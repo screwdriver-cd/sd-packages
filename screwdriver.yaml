@@ -53,7 +53,7 @@ jobs:
   zstd:
     requires: [~pr, ~commit]
     environment:
-      RELEASE_FILE : zstd-cli-linux.tar.gz
+      RELEASE_FILE : /tmp/zstd-cli-linux.tar.gz
     steps:
       - make: |
           yum install -y epel-release
