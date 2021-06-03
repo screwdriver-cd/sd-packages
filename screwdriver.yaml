@@ -64,10 +64,10 @@ jobs:
           make
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
-      - setup-ci: git clone -b feat/sdpkgs https://github.com/screwdriver-cd/toolbox.git ci
+      - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
       - package: tar -czf ${RELEASE_FILE} ./${ZSTD_PACKAGE}
       - tag: ./ci/git-tag.sh
-      - publish: ./ci/git-release.sh
+      - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
       - GIT_KEY_BASE64
