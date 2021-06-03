@@ -56,6 +56,7 @@ jobs:
       RELEASE_FILE : /tmp/zstd-cli-linux.tar.gz
     steps:
       - make: |
+          sleep 1h
           yum install -y epel-release
           yum install -y zlib-devel wget git make gcc gcc-c++ jq bzip2
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
