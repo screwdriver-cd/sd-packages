@@ -16,36 +16,35 @@ jobs:
           yum install -y wget git make gcc gcc-c++ jq bzip2
           wget -q -O go1.15.6.tar.gz https://golang.org/dl/go1.15.6.linux-amd64.tar.gz
           tar -C /usr/local -oxzf go1.15.6.tar.gz
+          export CURR_DIR=$(pwd)
           mkdir /go && cd /go
           export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
           git clone https://github.com/containers/${SKOPEO_PACKAGE} $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
           cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE} && make DISABLE_CGO=1 bin/${SKOPEO_PACKAGE}
-          chmod +x bin/${SKOPEO_PACKAGE}
-          ./bin/${SKOPEO_PACKAGE} -v
+          mv bin/${SKOPEO_PACKAGE} $CURR_DIR/ && cd $CURR_DIR/
+          chmod +x ${SKOPEO_PACKAGE}
+          ./${SKOPEO_PACKAGE} -v
       - test-node12-sha256: |
-          DIGEST=$( ./bin/skopeo inspect docker://docker.io/node:12 | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/node:12 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image node:12 sha256 digest"
             exit 1   v
           fi
       - test-alpine-sha256: |
-          DIGEST=$( ./bin/${SKOPEO_PACKAGE} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image alpine:latest sha256 digest"
             exit 1
           fi
       - test-busybox-sha256: |
-          DIGEST=$( ./bin/${SKOPEO_PACKAGE} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image busybox:latest sha256 digest"
             exit 1
           fi
       - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-      - package: tar -czf ${RELEASE_FILE} ./bin/${SKOPEO_PACKAGE}
-      - tag: |
-          export GIT_ORG=`git remote -v | grep fetch | sed 's/ (fetch)//' | cut -d'/' -f4`
-          export GIT_REPO=`git remote -v | grep fetch | sed 's/ (fetch)//' | cut -d'/' -f5`
-          ./ci/git-tag.sh
+      - package: tar -czf ${RELEASE_FILE} ./${SKOPEO_PACKAGE}
+      - tag: ./ci/git-tag.sh
       - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
