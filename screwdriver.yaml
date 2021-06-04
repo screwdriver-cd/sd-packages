@@ -42,7 +42,10 @@ jobs:
           fi
       - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
       - package: tar -czf ${RELEASE_FILE} ./bin/${SKOPEO_PACKAGE}
-      - tag: ./ci/git-tag.sh
+      - tag: |
+          export GIT_ORG=`git remote -v | grep fetch | sed 's/ (fetch)//' | cut -d'/' -f4`
+          export GIT_REPO=`git remote -v | grep fetch | sed 's/ (fetch)//' | cut -d'/' -f5`
+          ./ci/git-tag.sh
       - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
@@ -60,8 +63,7 @@ jobs:
           yum install -y zlib-devel wget git make gcc gcc-c++ jq bzip2
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
-          cd zstd-${ZSTD_VERSION}
-          make
+          cd zstd-${ZSTD_VERSION} && make
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
       - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
