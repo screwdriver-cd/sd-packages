@@ -66,7 +66,7 @@ jobs:
           yum install -y wget git make gcc gcc-c++ bzip2
           git clone https://github.com/screwdriver-cd/toolbox.git ci
       - tag: ./ci/git-tag.sh
-      - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || (files=($RELEASE_FILES); for i in "${files[@]}"; do store-cli get $i --type=cache --scope=event; (if [ -f $i ]; then ./ci/git-release.sh; else echo skip $i not found; fi); done)
+      - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || (files=($RELEASE_FILES); for i in "${files[@]}"; do store-cli get $i --type=cache --scope=event; (if [ -f $i ]; then export RELEASE_FILE=$i && ./ci/git-release.sh; else echo skip $i not found; fi); done)
     secrets:
       # Pushing tags to Git
       - GIT_KEY_BASE64
