@@ -45,9 +45,7 @@ jobs:
       #- cache: store-cli set "${RELEASE_FILES[0]}" --type=cache --scope=event
       - makezstd: |        
           yum install -y zlib-devel wget git make gcc gcc-c++ jq bzip2
-          wget -q -O - https://github.com/facebook/zstd/releases/latest \
-          | egrep -o '/facebook/zstd/releases/download/v[0-9.]*/.tar.gz' \
-          | wget --base=http://github.com/ -i - -O zstd.tar.gz
+          wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd.tar.gz
           cd zstd.tar.gz && make
           chmod +x ./${ZSTD_PACKAGE}
