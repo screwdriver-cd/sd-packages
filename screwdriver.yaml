@@ -59,7 +59,7 @@ jobs:
       - package: a=($RELEASE_FILES) && tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
 
   publish:
-    requires: [~zstd, ~skopeo]
+    requires: [zstd, skopeo]
     steps:
       - setup-ci: |
           yum install -y epel-release
