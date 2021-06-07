@@ -1,15 +1,13 @@
 shared:
   image: centos:centos7
   environment:
-    SKOPEO_PACKAGE: skopeo
-    ZSTD_PACKAGE: zstd
-    ZSTD_VERSION: 1.5.0
+    RELEASE_FILES: "zstd-cli-linux.tar.gz skopeo-linux.tar.gz"
 
 jobs:
   skopeo:
     requires: [~pr, ~commit]
     environment:
-      RELEASE_FILE: skopeo-linux.tar.gz
+      SKOPEO_PACKAGE: skopeo
     steps:
       - make: |
           yum install -y epel-release
@@ -42,36 +40,35 @@ jobs:
             echo "unable to get image busybox:latest sha256 digest"
             exit 1
           fi
-      - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-      - package: tar -czf ${RELEASE_FILE} ./${SKOPEO_PACKAGE}
-      - tag: ./ci/git-tag.sh
-      - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
-    secrets:
-      # Pushing tags to Git
-      - GIT_KEY_BASE64
-      # Pushing releases to GitHub
-      - GITHUB_TOKEN
+      - package: a=($RELEASE_FILES) && tar -czf ${a[0]} ./${SKOPEO_PACKAGE} && store-cli set ${a[0]} --type=cache --scope=event
 
   zstd:
     requires: [~pr, ~commit]
     environment:
-      RELEASE_FILE : zstd-cli-linux.tar.gz
+      ZSTD_PACKAGE: zstd
+      ZSTD_VERSION: 1.5.0
     steps:
       - make: |
           yum install -y epel-release
-          yum install -y zlib-devel wget git make gcc gcc-c++ jq bzip2
+          yum install -y zlib-devel wget make gcc gcc-c++
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
           cd zstd-${ZSTD_VERSION} && make
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
-      - setup-ci: git clone https://github.com/screwdriver-cd/toolbox.git ci
-      - package: tar -czf ${RELEASE_FILE} ./${ZSTD_PACKAGE}
+      - package: a=($RELEASE_FILES) && tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
+
+  publish:
+    requires: [zstd, skopeo]
+    steps:
+      - setup-ci: |
+          yum install -y epel-release
+          yum install -y wget git make gcc gcc-c++ bzip2
+          git clone https://github.com/screwdriver-cd/toolbox.git ci
       - tag: ./ci/git-tag.sh
-      - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
+      - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || (files=($RELEASE_FILES); for i in "${files[@]}"; do store-cli get $i --type=cache --scope=event; (if [ -f $i ]; then ./ci/git-release.sh; else echo skip $i not found; fi); done)
     secrets:
       # Pushing tags to Git
       - GIT_KEY_BASE64
       # Pushing releases to GitHub
       - GITHUB_TOKEN
-
