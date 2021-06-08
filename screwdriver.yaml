@@ -1,7 +1,7 @@
 shared:
   image: centos:centos7
   environment:
-    RELEASE_FILES: "zstd-cli-linux.tar.gz skopeo-linux.tar.gz"
+    RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-macosx.tar.gz"
 
 jobs:
   skopeo:
@@ -53,20 +53,28 @@ jobs:
           yum install -y zlib-devel wget make gcc gcc-c++
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
-          cd zstd-${ZSTD_VERSION} && make
+          cd zstd-${ZSTD_VERSION} && make && cd programs
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
       - package: a=($RELEASE_FILES) && tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
 
+  zstd-mac:
+    requires: [~pr, ~commit]
+    environment:
+      ZSTD_PACKAGE: zstd
+    steps:
+      - make: echo "Fetching local file for mac build. Please build and upload manually if building new version"
+      - package: a=($RELEASE_FILES) && store-cli set ${a[2]} --type=cache --scope=event
+  
   publish:
-    requires: [zstd, skopeo]
+    requires: [zstd, skopeo, zstd-mac]
     steps:
       - setup-ci: |
           yum install -y epel-release
           yum install -y wget git make gcc gcc-c++ bzip2
           git clone https://github.com/screwdriver-cd/toolbox.git ci
-      - tag: ./ci/git-tag.sh
       - get: (files=($RELEASE_FILES); for i in "${files[@]}"; do store-cli get $i --type=cache --scope=event;done)
+      - tag: ./ci/git-tag.sh
       - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
