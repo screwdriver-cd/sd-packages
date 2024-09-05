@@ -25,7 +25,7 @@ jobs:
       - test-node20-sha256: |
           DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/node:20 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
-            echo "unable to get image node:12 sha256 digest"
+            echo "unable to get image node:20 sha256 digest"
             exit 1   v
           fi
       - test-alpine-sha256: |
