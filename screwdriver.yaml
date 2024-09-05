@@ -1,5 +1,5 @@
 shared:
-  image: centos:centos7
+  image: almalinux
   environment:
     RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-macosx.tar.gz"
 
@@ -12,8 +12,8 @@ jobs:
       - make: |
           yum install -y epel-release
           yum install -y wget git make gcc gcc-c++ jq bzip2
-          wget -q -O go1.15.6.tar.gz https://golang.org/dl/go1.15.6.linux-amd64.tar.gz
-          tar -C /usr/local -oxzf go1.15.6.tar.gz
+          wget -q -O go1.23.0.tar.gz https://golang.org/dl/go1.23.0.linux-amd64.tar.gz
+          tar -C /usr/local -oxzf go1.23.0.tar.gz
           export CURR_DIR=$(pwd)
           mkdir /go && cd /go
           export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
@@ -22,10 +22,10 @@ jobs:
           mv bin/${SKOPEO_PACKAGE} $CURR_DIR/ && cd $CURR_DIR/
           chmod +x ${SKOPEO_PACKAGE}
           ./${SKOPEO_PACKAGE} -v
-      - test-node12-sha256: |
-          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/node:12 | jq -r '.Digest')
+      - test-node20-sha256: |
+          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/node:20 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
-            echo "unable to get image node:12 sha256 digest"
+            echo "unable to get image node:20 sha256 digest"
             exit 1   v
           fi
       - test-alpine-sha256: |
