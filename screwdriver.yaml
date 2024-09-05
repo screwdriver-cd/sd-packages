@@ -75,7 +75,9 @@ jobs:
           git clone https://github.com/screwdriver-cd/toolbox.git ci
       - get: (files=($RELEASE_FILES); for i in "${files[@]}"; do store-cli get $i --type=cache --scope=event;done)
       - tag: ./ci/git-tag.sh
-      - publish: ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
+      - publish: |
+          git fetch --unshallow
+          ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
       - GIT_KEY_BASE64
