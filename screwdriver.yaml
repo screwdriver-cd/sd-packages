@@ -76,7 +76,7 @@ jobs:
       - get: (files=($RELEASE_FILES); for i in "${files[@]}"; do store-cli get $i --type=cache --scope=event;done)
       - tag: ./ci/git-tag.sh
       - publish: |
-          git fetch --unshallow
+          (files=($RELEASE_FILES); for i in "${files[@]}"; echo $i)
           ([ ! -z $SD_PULL_REQUEST ] && echo skip publish for PR) || ./ci/git-release.sh
     secrets:
       # Pushing tags to Git
