@@ -1,7 +1,7 @@
 shared:
   image: almalinux
   environment:
-    RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-macosx.tar.gz"
+    RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-linux-aarch64.tar.gz zstd-cli-macosx.tar.gz"
 
 jobs:
   skopeo:
@@ -46,7 +46,7 @@ jobs:
     requires: [~pr, ~commit]
     environment:
       ZSTD_PACKAGE: zstd
-      ZSTD_VERSION: 1.5.0
+      ZSTD_VERSION: 1.5.6
     steps:
       - make: |
           yum install -y epel-release
