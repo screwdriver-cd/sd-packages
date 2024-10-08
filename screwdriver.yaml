@@ -56,16 +56,18 @@ jobs:
           cd zstd-${ZSTD_VERSION} && make && cd programs
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
-      - package: a=($RELEASE_FILES) && tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
+      - package: | 
+          a=($RELEASE_FILES)
+          tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
+          tar -czf ${a[2]} ./${ZSTD_PACKAGE} && store-cli set ${a[2]} --type=cache --scope=event
 
   zstd-mac:
     requires: [~pr, ~commit]
     environment:
       ZSTD_PACKAGE: zstd
-      ZTSD_MAC_RELEASE_FILES: "zstd-cli-macosx.tar.gz"
     steps:
       - make: echo "Fetching local file for mac build. Please build and upload manually if building new version"
-      - package: a=($ZTSD_MAC_RELEASE_FILES) && store-cli set ${a[2]} --type=cache --scope=event
+      - package: a=($RELEASE_FILES) && store-cli set ${a[3]} --type=cache --scope=event
   
   publish:
     requires: [zstd, skopeo, zstd-mac]
