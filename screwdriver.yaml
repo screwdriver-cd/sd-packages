@@ -53,9 +53,10 @@ jobs:
           yum install -y zlib-devel wget make gcc gcc-c++
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
-          cd zstd-${ZSTD_VERSION} && make && cd programs
+          cd zstd-${ZSTD_VERSION} && make CFLAGS="-static -O2" LDFLAGS="-static" && cd programs
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
+          ldd ./${ZSTD_PACKAGE}
       - package: | 
           a=($RELEASE_FILES)
           tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
