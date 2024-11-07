@@ -8,17 +8,16 @@ jobs:
     requires: [~pr, ~commit]
     environment:
       SKOPEO_PACKAGE: skopeo
+      SKOPEO_VERSION: 1.16.1
     steps:
       - make: |
           yum install -y epel-release
           yum install -y wget git make gcc gcc-c++ jq bzip2
-          wget -q -O go1.23.0.tar.gz https://golang.org/dl/go1.23.0.linux-amd64.tar.gz
-          tar -C /usr/local -oxzf go1.23.0.tar.gz
-          export CURR_DIR=$(pwd)
-          mkdir /go && cd /go
-          export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
-          git clone https://github.com/containers/${SKOPEO_PACKAGE} $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
-          cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
+
+          # get skopeo
+          wget -q -O skopeo-${SKOPEO_VERSION}.tar.gz https://github.com/containers/skopeo/releases/download/v${SKOPEO_VERSION}/skopeo-${SKOPEO_VERSION}.tar.gz
+          tar -C . -oxzf skopeo-${SKOPEO_VERSION}.tar.gz
+          cd skopeo-${ZSTD_VERSION}
           
           # build
           CGO_ENABLED=0 BUILDTAGS='containers_image_openpgp' make CFLAGS="-static -O2" LDFLAGS='-extldflags "-static"' bin/${SKOPEO_PACKAGE}
@@ -65,7 +64,7 @@ jobs:
     steps:
       - make: |
           yum install -y epel-release
-          yum install -y zlib-devel wget make gcc gcc-c++ lz4-devel xz-devel
+          yum install -y zlib-devel wget make gcc gcc-c++ lz4-devel xz-devel glibc-static
           dnf groupinstall -y "Development Tools"
           
           # get ztsd
@@ -74,7 +73,12 @@ jobs:
           cd zstd-${ZSTD_VERSION}
 
           # build
+          make lib-release
           make CFLAGS="-static -O2" LDFLAGS="-static"
+          # check build
+          ls lib/libzstd.so*
+          ldd lib/libzstd.so
+
           cd programs
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
