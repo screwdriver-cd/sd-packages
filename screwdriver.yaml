@@ -79,8 +79,8 @@ jobs:
           
           # Configure and install musl with static linking
           ./configure --prefix=/usr/local/musl
-          make
-          make install
+          make > /dev/null 2>&1
+          make install > /dev/null 2>&1
           cd ..
           export PATH=/usr/local/musl/bin:$PATH
 
@@ -90,7 +90,7 @@ jobs:
               exit 1
           fi
 
-          musl-gcc --version
+          /usr/local/musl/bin/musl-gcc -dumpmachine
 
           # get ztsd
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
@@ -103,8 +103,8 @@ jobs:
           
           # Build the zstd binary statically using musl-gcc
           make clean
-          export CC=musl-gcc
-          CC=musl-gcc make CFLAGS="-static -O2" LDFLAGS="-static"
+          export CC=/usr/local/musl/bin/musl-gcc
+          make CFLAGS="-static -O2" LDFLAGS="-static"
 
           cd programs
           chmod +x ./${ZSTD_PACKAGE}
