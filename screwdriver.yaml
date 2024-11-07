@@ -18,7 +18,8 @@ jobs:
           mkdir /go && cd /go
           export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
           git clone https://github.com/containers/${SKOPEO_PACKAGE} $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
-          cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE} && make DISABLE_CGO=1 CFLAGS="-static -O2" LDFLAGS="-static" bin/${SKOPEO_PACKAGE}
+          cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
+          CGO_ENABLED=0 BUILDTAGS='containers_image_openpgp' make CFLAGS="-static -O2" LDFLAGS='-extldflags "-static"' bin/${SKOPEO_PACKAGE}
           mv bin/${SKOPEO_PACKAGE} $CURR_DIR/ && cd $CURR_DIR/
           chmod +x ${SKOPEO_PACKAGE}
           ./${SKOPEO_PACKAGE} -v
@@ -54,19 +55,14 @@ jobs:
       - make: |
           yum install -y epel-release
           yum install -y zlib-devel wget make gcc gcc-c++
+          dnf groupinstall "Development Tools"
+          dnf install lz4-devel xz-devel
           
-          wget https://musl.libc.org/releases/musl-1.2.5.tar.gz
-          tar -xzf musl-1.2.5.tar.gz
-          cd musl-1.2.5
-          # build musl
-          ./configure
-          make
-          sudo make install
-          musl-gcc --version
           # install ztsd
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
-          cd zstd-${ZSTD_VERSION} && CC=musl-gcc make CFLAGS="-static -O2" LDFLAGS="-static" && cd programs
+          cd zstd-${ZSTD_VERSION}
+          make CFLAGS="-static -O2" LDFLAGS="-static" && cd programs
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
           ldd ./${ZSTD_PACKAGE}
