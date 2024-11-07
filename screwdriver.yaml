@@ -110,7 +110,7 @@ jobs:
           ./${ZSTD_PACKAGE} --version
 
           # verify
-          ldd ./${ZSTD_PACKAGE}
+          ldd ./${ZSTD_PACKAGE} || echo "Binary is statically linked (no dynamic dependencies)"
       - package: | 
           a=($RELEASE_FILES)
           tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
