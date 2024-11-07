@@ -19,10 +19,15 @@ jobs:
           export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
           git clone https://github.com/containers/${SKOPEO_PACKAGE} $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
           cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
+          
+          # build
           CGO_ENABLED=0 BUILDTAGS='containers_image_openpgp' make CFLAGS="-static -O2" LDFLAGS='-extldflags "-static"' bin/${SKOPEO_PACKAGE}
           mv bin/${SKOPEO_PACKAGE} $CURR_DIR/ && cd $CURR_DIR/
           chmod +x ${SKOPEO_PACKAGE}
           ./${SKOPEO_PACKAGE} -v
+
+          # verify
+          ldd ./${SKOPEO_PACKAGE}
       - test-node20-sha256: |
           DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/node:20 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
@@ -41,6 +46,12 @@ jobs:
             echo "unable to get image busybox:latest sha256 digest"
             exit 1
           fi
+      - test-centos7-sha256: |
+          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/centos:7 | jq -r '.Digest')
+          if [[ -z $DIGEST ]]; then
+            echo "unable to get image centos:7 sha256 digest"
+            exit 1
+          fi   
       - package: |
           a=($RELEASE_FILES)
           tar -czf ${a[0]} ./${SKOPEO_PACKAGE} && store-cli set ${a[0]} --type=cache --scope=event
@@ -54,17 +65,21 @@ jobs:
     steps:
       - make: |
           yum install -y epel-release
-          yum install -y zlib-devel wget make gcc gcc-c++
-          dnf groupinstall "Development Tools"
-          dnf install lz4-devel xz-devel
+          yum install -y zlib-devel wget make gcc gcc-c++ lz4-devel xz-devel
+          dnf groupinstall -y "Development Tools"
           
-          # install ztsd
+          # get ztsd
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
           cd zstd-${ZSTD_VERSION}
-          make CFLAGS="-static -O2" LDFLAGS="-static" && cd programs
+
+          # build
+          make CFLAGS="-static -O2" LDFLAGS="-static"
+          cd programs
           chmod +x ./${ZSTD_PACKAGE}
           ./${ZSTD_PACKAGE} --version
+
+          # verify
           ldd ./${ZSTD_PACKAGE}
       - package: | 
           a=($RELEASE_FILES)
