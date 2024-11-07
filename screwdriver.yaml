@@ -17,7 +17,7 @@ jobs:
           # get skopeo
           wget -q -O skopeo-${SKOPEO_VERSION}.tar.gz https://github.com/containers/skopeo/archive/refs/tags/v${SKOPEO_VERSION}.tar.gz
           tar -C . -oxzf skopeo-${SKOPEO_VERSION}.tar.gz
-          cd skopeo-${ZSTD_VERSION}
+          cd skopeo-${SKOPEO_VERSION}
           
           # build
           CGO_ENABLED=0 BUILDTAGS='containers_image_openpgp' make CFLAGS="-static -O2" LDFLAGS='-extldflags "-static"' bin/${SKOPEO_PACKAGE}
@@ -91,6 +91,7 @@ jobs:
           cd zstd-${ZSTD_VERSION}
 
           # build
+          make lib-release
           export CC=musl-gcc 
           make CFLAGS="-static -O2" LDFLAGS="-static"
 
