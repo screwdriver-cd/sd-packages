@@ -90,19 +90,21 @@ jobs:
               exit 1
           fi
 
+          musl-gcc --version
+
           # get ztsd
           wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
           tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
           cd zstd-${ZSTD_VERSION}
 
-          # build
+          # Build lib with gcc
           make clean
           make CC=gcc lib-release
           
-          # Step 4: Build the zstd binary statically using musl-gcc
+          # Build the zstd binary statically using musl-gcc
           make clean
           export CC=musl-gcc
-          make CFLAGS="-static -O2" LDFLAGS="-static"
+          CC=musl-gcc make CFLAGS="-static -O2" LDFLAGS="-static"
 
           cd programs
           chmod +x ./${ZSTD_PACKAGE}
