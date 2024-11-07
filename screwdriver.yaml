@@ -1,7 +1,7 @@
 shared:
   image: almalinux
   environment:
-    RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-linux-aarch64.tar.gz zstd-cli-macosx.tar.gz"
+    RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-linux-aarch64.tar.gz zstd-cli-macosx.tar.gz skopeo-linux-aarch64.tar.gz"
 
 jobs:
   skopeo:
@@ -18,7 +18,7 @@ jobs:
           mkdir /go && cd /go
           export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
           git clone https://github.com/containers/${SKOPEO_PACKAGE} $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
-          cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE} && make DISABLE_CGO=1 bin/${SKOPEO_PACKAGE}
+          cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE} && make DISABLE_CGO=1 CFLAGS="-static -O2" LDFLAGS="-static" bin/${SKOPEO_PACKAGE}
           mv bin/${SKOPEO_PACKAGE} $CURR_DIR/ && cd $CURR_DIR/
           chmod +x ${SKOPEO_PACKAGE}
           ./${SKOPEO_PACKAGE} -v
@@ -40,8 +40,11 @@ jobs:
             echo "unable to get image busybox:latest sha256 digest"
             exit 1
           fi
-      - package: a=($RELEASE_FILES) && tar -czf ${a[0]} ./${SKOPEO_PACKAGE} && store-cli set ${a[0]} --type=cache --scope=event
-
+      - package: |
+          a=($RELEASE_FILES)
+          tar -czf ${a[0]} ./${SKOPEO_PACKAGE} && store-cli set ${a[0]} --type=cache --scope=event
+          tar -czf ${a[4]} ./${SKOPEO_PACKAGE} && store-cli set ${a[4]} --type=cache --scope=event
+        
   zstd:
     requires: [~pr, ~commit]
     environment:
