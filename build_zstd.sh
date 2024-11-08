@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install dependencies
-apt-get update && sudo apt-get install -y build-essential wget cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+apt-get update && sudo apt-get install -y build-essential wget cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu file
 
 ARCHITECTURES=("x86_64" "aarch64")
 COMPILERS=("gcc" "aarch64-linux-gnu-gcc")

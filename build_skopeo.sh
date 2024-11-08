@@ -2,7 +2,7 @@
 
 # Install dependencies
 yum install -y epel-release
-yum install -y wget git make gcc gcc-c++ jq bzip2
+yum install -y wget git make gcc gcc-c++ jq bzip2 file
 
 # Download and set up Go
 wget -q -O go${GO_VERSION}.tar.gz https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
