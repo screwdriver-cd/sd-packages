@@ -7,7 +7,8 @@ jobs:
   skopeo:
     requires: [~pr, ~commit]
     environment:
-      SKOPEO_PACKAGE: skopeo
+      SKOPEO_PACKAGE_AMD64: skopeo.linux.amd64
+      SKOPEO_PACKAGE_ARM64: skopeo.linux.arm64
       SKOPEO_VERSION: 1.16.1
     steps:
       - make: |
@@ -22,99 +23,131 @@ jobs:
           # get skopeo
           wget -q -O skopeo-${SKOPEO_VERSION}.tar.gz https://github.com/containers/skopeo/archive/refs/tags/v${SKOPEO_VERSION}.tar.gz
           tar -C . -oxzf skopeo-${SKOPEO_VERSION}.tar.gz
-          cd skopeo-${SKOPEO_VERSION}
-          
-          # build
-          CGO_ENABLED=0 BUILDTAGS='containers_image_openpgp' make CFLAGS="-static -O2" LDFLAGS='-extldflags "-static"' bin/${SKOPEO_PACKAGE}
-          mv bin/${SKOPEO_PACKAGE} $CURR_DIR/ && cd $CURR_DIR/
-          chmod +x ${SKOPEO_PACKAGE}
-          ./${SKOPEO_PACKAGE} -v
 
-          # verify
-          ldd ./${SKOPEO_PACKAGE}
+          build_skopeo() {
+            local arch=$1
+            local package_var=$2
+            cd skopeo-${SKOPEO_VERSION}
+            make -j4 bin/${!package_var} V=1 EXTRA_LDFLAGS="-s -w" DISABLE_CGO=1 BUILDTAGS=containers_image_openpgp CGO_ENABLED=0 GOARCH=${arch} GOOS=linux
+            mv bin/${!package_var} $CURR_DIR/ && cd $CURR_DIR/
+            chmod +x ${!package_var}
+            ./${!package_var} -v
+
+            # verify
+            ldd ./${!package_var}
+            file ./${!package_var}
+            if ldd ./${!package_var} 2>&1 | grep -q "not a dynamic executable"; then
+              echo "The binary is statically linked."
+            else
+              echo "Error: The binary is not statically linked."
+              exit 1
+            fi
+
+            # Check if the binary is of the correct architecture using file
+            if file ./${!package_var} | grep -q "${arch}"; then
+              echo "The binary is for the correct architecture (${arch})."
+            else
+              echo "Error: The binary is not for the correct architecture (expected ${arch})."
+              exit 1
+            fi
+          }
+
+          # build amd64
+          build_skopeo "amd64" "${SKOPEO_PACKAGE_AMD64}"
+
+          # build arm64
+          build_skopeo "arm64" "${SKOPEO_PACKAGE_ARM64}"
       - test-node20-sha256: |
-          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/node:20 | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/node:20 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image node:20 sha256 digest"
             exit 1   v
           fi
       - test-alpine-sha256: |
-          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image alpine:latest sha256 digest"
             exit 1
           fi
       - test-busybox-sha256: |
-          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image busybox:latest sha256 digest"
             exit 1
           fi
       - test-centos7-sha256: |
-          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/centos:7 | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/centos:7 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image centos:7 sha256 digest"
             exit 1
           fi   
       - package: |
           a=($RELEASE_FILES)
-          tar -czf ${a[0]} ./${SKOPEO_PACKAGE} && store-cli set ${a[0]} --type=cache --scope=event
-          tar -czf ${a[4]} ./${SKOPEO_PACKAGE} && store-cli set ${a[4]} --type=cache --scope=event
+          tar -czf ${a[0]} ./${SKOPEO_PACKAGE_AMD64} && store-cli set ${a[0]} --type=cache --scope=event
+          tar -czf ${a[4]} ./${SKOPEO_PACKAGE_ARM64} && store-cli set ${a[4]} --type=cache --scope=event
         
   zstd:
     requires: [~pr, ~commit]
+    image: ubuntu:latest
     environment:
-      ZSTD_PACKAGE: zstd
       ZSTD_VERSION: 1.5.6
-      MUSL_VERSION: 1.2.4
+      BUILD_DIR: "/tmp/ztsd_static_build"
     steps:
       - make: |
-          yum install -y epel-release
-          yum install -y wget make gcc gcc-c++
+          ARCHITECTURES=("x86_64" "aarch64")
+          COMPILERS=("gcc" "aarch64-linux-gnu-gcc")
+          OUTPUT_FILES=("${BUILD_DIR}/zstd-linux-x86_64" "${BUILD_DIR}/zstd-linux-aarch64")
           
-          # Step 1: Install musl from source
-          wget https://musl.libc.org/releases/musl-${MUSL_VERSION}.tar.gz
-          tar -xzf musl-${MUSL_VERSION}.tar.gz
-          cd musl-${MUSL_VERSION}
+          # Function to check if binary is static and has correct architecture
+          check_binary() {
+              local binary="$1"
+              local arch="$2"
           
-          # Configure and install musl with static linking
-          ./configure --prefix=/usr/local/musl
-          make > /dev/null 2>&1
-          make install > /dev/null 2>&1
-          cd ..
-          export PATH=/usr/local/musl/bin:$PATH
-
-          # Verify musl installation
-          if ! command -v musl-gcc &> /dev/null; then
-              echo "musl installation failed."
-              exit 1
+              # Check if binary is statically linked
+              if ! ldd "$binary" 2>&1 | grep -q "not a dynamic executable"; then
+                  echo "Error: $binary is not statically linked."
+                  exit 1
+              fi
+          
+              # Check if binary has the correct architecture
+              if ! file "$binary" | grep -q "$arch"; then
+                  echo "Error: $binary does not match expected architecture: $arch."
+                  exit 1
+              fi
+          }
+          
+          # Install dependencies
+          apt-get update && sudo apt-get install -y build-essential wget cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          
+          mkdir -p "$BUILD_DIR"
+          cd "$BUILD_DIR"
+          
+          if [ ! -d "zstd-${ZSTD_VERSION}" ]; then
+              echo "Downloading zstd version ${ZSTD_VERSION}..."
+              wget https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
+              tar -xzf zstd-${ZSTD_VERSION}.tar.gz
           fi
-
-          musl-gcc -v
-
-          # get ztsd
-          wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
-          tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
-          cd zstd-${ZSTD_VERSION}
-
-          # Build lib with gcc
-          make clean
-          make CC=gcc lib-release
+          cd "zstd-${ZSTD_VERSION}"
           
-          # Build the zstd binary statically using musl-gcc
-          cd programs
-          make clean
-          CC=musl-gcc make CFLAGS="-static -O2" LDFLAGS="-static"
-
-          chmod +x ./${ZSTD_PACKAGE}
-          ./${ZSTD_PACKAGE} --version
-
-          # verify
-          ldd ./${ZSTD_PACKAGE} || echo "Binary is statically linked (no dynamic dependencies)"
+          # Build and verify binaries for each architecture
+          for i in "${!ARCHITECTURES[@]}"; do
+              arch="${ARCHITECTURES[$i]}"
+              compiler="${COMPILERS[$i]}"
+              output_file="${OUTPUT_FILES[$i]}"
+          
+              echo "Building zstd statically for $arch..."
+              make clean
+              CC="$compiler" CFLAGS="-static -O2 -pthread" LDFLAGS="-static" make -j4 zstd
+              cp zstd "$output_file"
+          
+              echo "Verifying $output_file..."
+              check_binary "$output_file" "$arch"
+          done
+          echo "Binaries are located at ${OUTPUT_FILES[*]}."
       - package: | 
           a=($RELEASE_FILES)
-          tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
-          tar -czf ${a[2]} ./${ZSTD_PACKAGE} && store-cli set ${a[2]} --type=cache --scope=event
+          tar -czf ${a[1]} ./${BUILD_DIR}/zstd-linux-x86_64 && store-cli set ${a[1]} --type=cache --scope=event
+          tar -czf ${a[2]} ./${BUILD_DIR}/zstd-linux-aarch64 && store-cli set ${a[2]} --type=cache --scope=event
 
   zstd-mac:
     requires: [~pr, ~commit]
