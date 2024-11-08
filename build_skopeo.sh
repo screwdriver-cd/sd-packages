@@ -18,36 +18,36 @@ cd skopeo-${SKOPEO_VERSION}
 
 # Define the build function
 build_skopeo() {
-local arch=$1
-local output_name=$2
-echo "Building skopeo for architecture: ${arch}"
+    local arch=$1
+    local output_name=$2
+    echo "Building skopeo for architecture: ${arch}"
 
-# Build with the specified architecture
-GOARCH=${arch} GOOS=linux CGO_ENABLED=0 \
-make -j4 bin/${output_name} V=1 EXTRA_LDFLAGS="-s -w" DISABLE_CGO=1 BUILDTAGS=containers_image_openpgp
+    # Build with the specified architecture
+    GOARCH=${arch} GOOS=linux CGO_ENABLED=0 \
+    make -j4 bin/${output_name} V=1 EXTRA_LDFLAGS="-s -w" DISABLE_CGO=1 BUILDTAGS=containers_image_openpgp
 
-# Move binary to the current directory
-mv bin/${output_name} ../
-chmod +x ../${output_name}
+    # Move binary to the current directory
+    mv bin/${output_name} ../
+    chmod +x ../${output_name}
 
-# Verify the binary
-echo "Verifying ${output_name}..."
-ldd ../${output_name}
-file ../${output_name}
-if ldd ../${output_name} 2>&1 | grep -q "not a dynamic executable"; then
-    echo "The binary ${output_name} is statically linked."
-else
-    echo "Error: The binary ${output_name} is not statically linked."
-    exit 1
-fi
+    # Verify the binary
+    echo "Verifying ${output_name}..."
+    ldd ../${output_name}
+    file ../${output_name}
+    if ldd ../${output_name} 2>&1 | grep -q "not a dynamic executable"; then
+        echo "The binary ${output_name} is statically linked."
+    else
+        echo "Error: The binary ${output_name} is not statically linked."
+        exit 1
+    fi
 
-# Check architecture
-if file ../${output_name} | grep -q "${arch}"; then
-    echo "The binary ${output_name} is for the correct architecture (${arch})."
-else
-    echo "Error: The binary ${output_name} is not for the correct architecture (expected ${arch})."
-    exit 1
-fi
+    # Check architecture
+    if file ../${output_name} | grep -q "${arch}"; then
+        echo "The binary ${output_name} is for the correct architecture (${arch})."
+    else
+        echo "Error: The binary ${output_name} is not for the correct architecture (expected ${arch})."
+        exit 1
+    fi
 }
 
 # Build for amd64

@@ -44,7 +44,7 @@ jobs:
         
   zstd:
     requires: [~pr, ~commit]
-    image: ubuntu
+    image: ubuntu:20.04
     environment:
       ZSTD_VERSION: 1.5.6
       BUILD_DIR: "/tmp/ztsd_static_build"
