@@ -15,12 +15,12 @@ export GOPATH=/go
 export PATH=${PATH}:${GOROOT}/bin
 
 # Download skopeo source code
-wget -q -O skopeo-${SKOPEO_VERSION}.tar.gz https://github.com/containers/skopeo/archive/refs/tags/${SKOPEO_VERSION}.tar.gz
+wget -q -O skopeo-${SKOPEO_VERSION}.tar.gz https://github.com/containers/skopeo/archive/refs/tags/v${SKOPEO_VERSION}.tar.gz
 tar -xzf skopeo-${SKOPEO_VERSION}.tar.gz
+cd skopeo-${SKOPEO_VERSION}
 
 # Define the build function
 build_skopeo() {
-    cd skopeo-${SKOPEO_VERSION}
     local arch=$1
     local output_name=$2
     echo "Building skopeo for architecture: ${arch}"
@@ -51,8 +51,6 @@ build_skopeo() {
         echo "Error: The binary ${output_name} is not for the correct architecture (expected ${arch})."
         exit 1
     fi
-
-    cd ${CURR_DIR}/
 }
 
 # Build for amd64
