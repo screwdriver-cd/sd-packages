@@ -12,51 +12,66 @@ jobs:
       SKOPEO_VERSION: 1.16.1
     steps:
       - make: |
+          # Install dependencies
           yum install -y epel-release
           yum install -y wget git make gcc gcc-c++ jq bzip2
-          wget -q -O go1.23.0.tar.gz https://golang.org/dl/go1.23.0.linux-amd64.tar.gz
-          tar -C /usr/local -oxzf go1.23.0.tar.gz
-          export CURR_DIR=$(pwd)
-          mkdir /go && cd /go
-          export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
-
-          # get skopeo
-          wget -q -O skopeo-${SKOPEO_VERSION}.tar.gz https://github.com/containers/skopeo/archive/refs/tags/v${SKOPEO_VERSION}.tar.gz
-          tar -C . -oxzf skopeo-${SKOPEO_VERSION}.tar.gz
-
+          
+          # Download and set up Go
+          GO_VERSION="1.23.0"
+          wget -q -O go${GO_VERSION}.tar.gz https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz
+          tar -C /usr/local -xzf go${GO_VERSION}.tar.gz
+          export GOROOT=/usr/local/go
+          export GOPATH=/go
+          export PATH=${PATH}:${GOROOT}/bin
+          
+          # Download skopeo source code
+          wget -q -O skopeo-${SKOPEO_VERSION}.tar.gz https://github.com/containers/skopeo/archive/refs/tags/${SKOPEO_VERSION}.tar.gz
+          tar -xzf skopeo-${SKOPEO_VERSION}.tar.gz
+          cd skopeo-${SKOPEO_VERSION}
+          
+          # Define the build function
           build_skopeo() {
             local arch=$1
-            local package_var=$2
-            cd skopeo-${SKOPEO_VERSION}
-            make -j4 bin/${!package_var} V=1 EXTRA_LDFLAGS="-s -w" DISABLE_CGO=1 BUILDTAGS=containers_image_openpgp CGO_ENABLED=0 GOARCH=${arch} GOOS=linux
-            mv bin/${!package_var} $CURR_DIR/ && cd $CURR_DIR/
-            chmod +x ${!package_var}
-            ./${!package_var} -v
-
-            # verify
-            ldd ./${!package_var}
-            file ./${!package_var}
-            if ldd ./${!package_var} 2>&1 | grep -q "not a dynamic executable"; then
-              echo "The binary is statically linked."
+            local output_name=$2
+            echo "Building skopeo for architecture: ${arch}"
+          
+            # Build with the specified architecture
+            GOARCH=${arch} GOOS=linux CGO_ENABLED=0 \
+            make -j4 bin/${output_name} V=1 EXTRA_LDFLAGS="-s -w" DISABLE_CGO=1 BUILDTAGS=containers_image_openpgp
+          
+            # Move binary to the current directory
+            mv bin/${output_name} ../
+            chmod +x ../${output_name}
+          
+            # Verify the binary
+            echo "Verifying ${output_name}..."
+            ldd ../${output_name}
+            file ../${output_name}
+            if ldd ../${output_name} 2>&1 | grep -q "not a dynamic executable"; then
+              echo "The binary ${output_name} is statically linked."
             else
-              echo "Error: The binary is not statically linked."
+              echo "Error: The binary ${output_name} is not statically linked."
               exit 1
             fi
-
-            # Check if the binary is of the correct architecture using file
-            if file ./${!package_var} | grep -q "${arch}"; then
-              echo "The binary is for the correct architecture (${arch})."
+          
+            # Check architecture
+            if file ../${output_name} | grep -q "${arch}"; then
+              echo "The binary ${output_name} is for the correct architecture (${arch})."
             else
-              echo "Error: The binary is not for the correct architecture (expected ${arch})."
+              echo "Error: The binary ${output_name} is not for the correct architecture (expected ${arch})."
               exit 1
             fi
           }
-
-          # build amd64
+          
+          # Build for amd64
           build_skopeo "amd64" "${SKOPEO_PACKAGE_AMD64}"
-
-          # build arm64
+          
+          # Build for arm64
           build_skopeo "arm64" "${SKOPEO_PACKAGE_ARM64}"
+          
+          cd ..
+          echo "Builds completed. Binaries located in $(pwd)."
+
       - test-node20-sha256: |
           DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/node:20 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
