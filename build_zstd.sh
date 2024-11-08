@@ -13,14 +13,18 @@ check_binary() {
     local arch="$2"
 
     # Check if binary is statically linked
-    if ! ldd "$binary" 2>&1 | grep -q "not a dynamic executable"; then
-        echo "Error: $binary is not statically linked."
+    if ldd "$binary" 2>&1 | grep -q "not a dynamic executable"; then
+        echo "The binary $binary is statically linked."
+    else
+        echo "Error: The binary $binary is not statically linked."
         exit 1
     fi
 
-    # Check if binary has the correct architecture
-    if ! file "$binary" | grep -q "$arch"; then
-        echo "Error: $binary does not match expected architecture: $arch."
+    # Check architecture
+    if file "$binary" | grep -q "$arch"; then
+        echo "The binary $binary is for the correct architecture $arch."
+    else
+        echo "Error: The binary $binary is not for the correct architecture (expected $arch)."
         exit 1
     fi
 }
