@@ -1,11 +1,11 @@
 shared:
-  image: almalinux
   environment:
     RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-linux-aarch64.tar.gz zstd-cli-macosx.tar.gz skopeo-linux-aarch64.tar.gz"
 
 jobs:
   skopeo:
     requires: [~pr, ~commit]
+    image: almalinux
     environment:
       SKOPEO_PACKAGE_AMD64: skopeo.linux.amd64
       SKOPEO_PACKAGE_ARM64: skopeo.linux.arm64
@@ -44,7 +44,7 @@ jobs:
         
   zstd:
     requires: [~pr, ~commit]
-    image: docker://docker.io/ubuntu:20.04
+    image: ubuntu:latest
     environment:
       ZSTD_VERSION: 1.5.6
       BUILD_DIR: "/tmp/ztsd_static_build"
@@ -57,6 +57,7 @@ jobs:
 
   zstd-mac:
     requires: [~pr, ~commit]
+    image: almalinux
     environment:
       ZSTD_PACKAGE: zstd
     steps:
@@ -65,6 +66,7 @@ jobs:
   
   publish:
     requires: [zstd, skopeo, zstd-mac]
+    image: almalinux
     steps:
       - setup-ci: |
           yum install -y epel-release
