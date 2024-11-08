@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install dependencies
-apt-get update && sudo apt-get install -y build-essential wget cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu file
+apt-get update && apt-get install -y build-essential wget cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu file
 
 ARCHITECTURES=("x86_64" "aarch64")
 COMPILERS=("gcc" "aarch64-linux-gnu-gcc")
@@ -25,6 +25,11 @@ check_binary() {
     fi
 }
 
+# Ensure BUILD_DIR and ZSTD_VERSION are set
+if [ -z "$BUILD_DIR" ] || [ -z "$ZSTD_VERSION" ]; then
+    echo "BUILD_DIR and ZSTD_VERSION must be set."
+    exit 1
+fi
 
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
