@@ -1,68 +1,63 @@
 shared:
-  image: almalinux
   environment:
-    RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-linux-aarch64.tar.gz zstd-cli-macosx.tar.gz"
+    RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-linux-aarch64.tar.gz zstd-cli-macosx.tar.gz skopeo-linux-aarch64.tar.gz"
 
 jobs:
   skopeo:
     requires: [~pr, ~commit]
+    image: almalinux
     environment:
-      SKOPEO_PACKAGE: skopeo
+      SKOPEO_PACKAGE_AMD64: skopeo.linux.amd64
+      SKOPEO_PACKAGE_ARM64: skopeo.linux.arm64
+      SKOPEO_VERSION: 1.16.1
+      GO_VERSION: 1.23.0
     steps:
-      - make: |
-          yum install -y epel-release
-          yum install -y wget git make gcc gcc-c++ jq bzip2
-          wget -q -O go1.23.0.tar.gz https://golang.org/dl/go1.23.0.linux-amd64.tar.gz
-          tar -C /usr/local -oxzf go1.23.0.tar.gz
-          export CURR_DIR=$(pwd)
-          mkdir /go && cd /go
-          export GOROOT=/usr/local/go && export GOPATH=/go/src && export PATH=${PATH}:${GOROOT}/bin
-          git clone https://github.com/containers/${SKOPEO_PACKAGE} $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE}
-          cd $GOPATH/src/github.com/containers/${SKOPEO_PACKAGE} && make DISABLE_CGO=1 bin/${SKOPEO_PACKAGE}
-          mv bin/${SKOPEO_PACKAGE} $CURR_DIR/ && cd $CURR_DIR/
-          chmod +x ${SKOPEO_PACKAGE}
-          ./${SKOPEO_PACKAGE} -v
+      - make: ./build_skopeo.sh
       - test-node20-sha256: |
-          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/node:20 | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/node:20 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image node:20 sha256 digest"
             exit 1   v
           fi
       - test-alpine-sha256: |
-          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image alpine:latest sha256 digest"
             exit 1
           fi
       - test-busybox-sha256: |
-          DIGEST=$( ./${SKOPEO_PACKAGE} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
+          DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
             echo "unable to get image busybox:latest sha256 digest"
             exit 1
           fi
-      - package: a=($RELEASE_FILES) && tar -czf ${a[0]} ./${SKOPEO_PACKAGE} && store-cli set ${a[0]} --type=cache --scope=event
-
+      - test-centos7-sha256: |
+          DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/centos:7 | jq -r '.Digest')
+          if [[ -z $DIGEST ]]; then
+            echo "unable to get image centos:7 sha256 digest"
+            exit 1
+          fi   
+      - package: |
+          a=($RELEASE_FILES)
+          tar -czf ${a[0]} ./${SKOPEO_PACKAGE_AMD64} && store-cli set ${a[0]} --type=cache --scope=event
+          tar -czf ${a[4]} ./${SKOPEO_PACKAGE_ARM64} && store-cli set ${a[4]} --type=cache --scope=event
   zstd:
     requires: [~pr, ~commit]
+    image: buildpack-deps:oracular
     environment:
-      ZSTD_PACKAGE: zstd
       ZSTD_VERSION: 1.5.6
+      BUILD_DIR: "/tmp/ztsd_static_build"
+      USER_SHELL_BIN: bash
     steps:
-      - make: |
-          yum install -y epel-release
-          yum install -y zlib-devel wget make gcc gcc-c++
-          wget -q -O zstd-${ZSTD_VERSION}.tar.gz https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
-          tar -C . -oxzf zstd-${ZSTD_VERSION}.tar.gz
-          cd zstd-${ZSTD_VERSION} && make && cd programs
-          chmod +x ./${ZSTD_PACKAGE}
-          ./${ZSTD_PACKAGE} --version
-      - package: | 
+      - make: ./build_zstd.sh
+      - package: |
           a=($RELEASE_FILES)
-          tar -czf ${a[1]} ./${ZSTD_PACKAGE} && store-cli set ${a[1]} --type=cache --scope=event
-          tar -czf ${a[2]} ./${ZSTD_PACKAGE} && store-cli set ${a[2]} --type=cache --scope=event
-
+          tar -czf ${a[1]} ${BUILD_DIR}/zstd-linux-x86_64 && store-cli set ${a[1]} --type=cache --scope=event
+          tar -czf ${a[2]} ${BUILD_DIR}/zstd-linux-aarch64 && store-cli set ${a[2]} --type=cache --scope=event
+          
   zstd-mac:
     requires: [~pr, ~commit]
+    image: almalinux
     environment:
       ZSTD_PACKAGE: zstd
     steps:
@@ -71,6 +66,7 @@ jobs:
   
   publish:
     requires: [zstd, skopeo, zstd-mac]
+    image: almalinux
     steps:
       - setup-ci: |
           yum install -y epel-release
