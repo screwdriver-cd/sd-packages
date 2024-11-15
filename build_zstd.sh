@@ -12,6 +12,11 @@ check_binary() {
     local binary="$1"
     local arch="$2"
 
+    # Verify the binary
+    echo "Verifying $binary..."
+    ldd $binary
+    file $binary
+    
     # Check if binary is statically linked
     if ldd "$binary" 2>&1 | grep -q "not a dynamic executable"; then
         echo "The binary $binary is statically linked."
@@ -41,9 +46,8 @@ cd "$BUILD_DIR"
 if [ ! -d "zstd-${ZSTD_VERSION}" ]; then
     echo "Downloading zstd version ${ZSTD_VERSION}..."
     wget https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
-    tar -xzf zstd-${ZSTD_VERSION}.tar.gz
 fi
-cd "zstd-${ZSTD_VERSION}"
+
 
 # Build and verify binaries for each architecture
 for i in "${!ARCHITECTURES[@]}"; do
@@ -51,11 +55,18 @@ for i in "${!ARCHITECTURES[@]}"; do
     compiler="${COMPILERS[$i]}"
     output_file="${OUTPUT_FILES[$i]}"
 
+    ls -lrt
+    rm -rf zstd-${ZSTD_VERSION}*
+    tar -xzf zstd-${ZSTD_VERSION}.tar.gz
+    cd "zstd-${ZSTD_VERSION}"
+
     echo "Building zstd statically for $arch..."
     make clean
     CC="$compiler" CFLAGS="-static -O2 -pthread" LDFLAGS="-static" make -j4 zstd
     cp zstd "$output_file"
 
+    chmod +x $output_file
+    
     echo "Verifying $output_file..."
     check_binary "$output_file" "$arch"
 done
