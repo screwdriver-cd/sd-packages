@@ -6,7 +6,7 @@ apt-get update && apt-get install -y build-essential wget cmake gcc-aarch64-linu
 ARCHITECTURES=("x86_64" "aarch64")
 COMPILERS=("gcc" "aarch64-linux-gnu-gcc")
 OUTPUT_FILES=("zstd-linux-x86_64" "zstd-linux-aarch64")
-VERIFY=("x86-64", "ARM aarch64")
+VERIFY=("x86-64" "ARM aarch64")
 STRIP=("strip" "aarch64-linux-gnu-strip")
 CURR_DIR=$(pwd)
 

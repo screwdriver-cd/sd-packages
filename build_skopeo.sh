@@ -46,10 +46,10 @@ build_skopeo() {
     fi
 
     # Check architecture
-    if file ../${output_name} | grep -q "${verify_arch}, version 1 (SYSV), statically linked"; then
-        echo "The binary ${output_name} is for the correct architecture (${arch})."
+    if file ${CURR_DIR}/${output_name} | grep -q "${verify_arch}, version 1 (SYSV), statically linked"; then
+        echo "The binary ${output_name} is for the correct architecture (${verify_arch})."
     else
-        echo "Error: The binary ${output_name} is not for the correct architecture (expected ${arch})."
+        echo "Error: The binary ${output_name} is not for the correct architecture (expected ${verify_arch})."
         exit 1
     fi
 }
