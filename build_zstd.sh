@@ -5,7 +5,8 @@ apt-get update && apt-get install -y build-essential wget cmake gcc-aarch64-linu
 
 ARCHITECTURES=("x86_64" "aarch64")
 COMPILERS=("gcc" "aarch64-linux-gnu-gcc")
-OUTPUT_FILES=("${BUILD_DIR}/zstd-linux-x86_64" "${BUILD_DIR}/zstd-linux-aarch64")
+OUTPUT_FILES=("zstd-linux-x86_64" "zstd-linux-aarch64")
+CURR_DIR=$(pwd)
 
 # Function to check if binary is static and has correct architecture
 check_binary() {
@@ -40,14 +41,13 @@ if [ -z "$BUILD_DIR" ] || [ -z "$ZSTD_VERSION" ]; then
     exit 1
 fi
 
-mkdir -p "$BUILD_DIR"
-cd "$BUILD_DIR"
-
 if [ ! -d "zstd-${ZSTD_VERSION}" ]; then
     echo "Downloading zstd version ${ZSTD_VERSION}..."
     wget https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz
+    tar -xzf zstd-${ZSTD_VERSION}.tar.gz
 fi
 
+mkdir -p "$BUILD_DIR"
 
 # Build and verify binaries for each architecture
 for i in "${!ARCHITECTURES[@]}"; do
@@ -55,20 +55,18 @@ for i in "${!ARCHITECTURES[@]}"; do
     compiler="${COMPILERS[$i]}"
     output_file="${OUTPUT_FILES[$i]}"
 
+    cp -r "zstd-${ZSTD_VERSION}" "$BUILD_DIR"
+    cd "$BUILD_DIR"
     ls -lrt
-    tar -xzf zstd-${ZSTD_VERSION}.tar.gz
-    cd "zstd-${ZSTD_VERSION}"
 
     echo "Building zstd statically for $arch..."
     make clean
-    CC="$compiler" CFLAGS="-static -O2 -pthread" LDFLAGS="-static" make -j4 zstd
-    cp zstd "$output_file"
-
-    chmod +x $output_file
-    
+    CC="$compiler" CFLAGS="-static -O2 -pthread" LDFLAGS="-static" make -j4 -C "zstd-${ZSTD_VERSION}" zstd
+    cp zstd "$CURR_DIR/$output_file"
+    chmod +x $CURR_DIR/$output_file
+    rm -rf *
+    cd "$CURR_DIR"
     echo "Verifying $output_file..."
     check_binary "$output_file" "$arch"
-    cd "$BUILD_DIR"
-    rm -rf zstd-${ZSTD_VERSION}
 done
 echo "Binaries are located at ${OUTPUT_FILES[*]}."
