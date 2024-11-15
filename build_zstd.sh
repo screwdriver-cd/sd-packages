@@ -60,7 +60,7 @@ for i in "${!ARCHITECTURES[@]}"; do
     ls -lrt
 
     echo "Building zstd statically for $arch..."
-    make clean
+    make clean -C "zstd-${ZSTD_VERSION}"
     CC="$compiler" CFLAGS="-static -O2 -pthread" LDFLAGS="-static" make -j4 -C "zstd-${ZSTD_VERSION}" zstd
     cp zstd "$CURR_DIR/$output_file"
     chmod +x $CURR_DIR/$output_file
