@@ -68,6 +68,7 @@ for i in "${!ARCHITECTURES[@]}"; do
     
     echo "Verifying $output_file..."
     check_binary "$output_file" "$arch"
+    cd "$BUILD_DIR"
     rm -rf zstd-${ZSTD_VERSION}
 done
 echo "Binaries are located at ${OUTPUT_FILES[*]}."
