@@ -56,7 +56,6 @@ for i in "${!ARCHITECTURES[@]}"; do
     output_file="${OUTPUT_FILES[$i]}"
 
     ls -lrt
-    rm -rf zstd-${ZSTD_VERSION}*
     tar -xzf zstd-${ZSTD_VERSION}.tar.gz
     cd "zstd-${ZSTD_VERSION}"
 
@@ -69,5 +68,6 @@ for i in "${!ARCHITECTURES[@]}"; do
     
     echo "Verifying $output_file..."
     check_binary "$output_file" "$arch"
+    rm -rf zstd-${ZSTD_VERSION}
 done
 echo "Binaries are located at ${OUTPUT_FILES[*]}."
