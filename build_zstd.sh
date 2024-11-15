@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install dependencies
-apt-get update && apt-get install -y build-essential wget cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu file zlib1g-dev liblzma-dev liblz4-dev
+apt-get update && apt-get install -y build-essential wget cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu file
 
 ARCHITECTURES=("x86_64" "aarch64")
 COMPILERS=("gcc" "aarch64-linux-gnu-gcc")
@@ -66,7 +66,7 @@ for i in "${!ARCHITECTURES[@]}"; do
     echo "Building zstd statically for $arch..."
     make clean -C "zstd-${ZSTD_VERSION}"
     CC="$compiler" CFLAGS="-static -O2 -pthread" LDFLAGS="-static" make -j4 -C "zstd-${ZSTD_VERSION}" zstd
-    strip_cmd -s "zstd-${ZSTD_VERSION}/programs/zstd"
+    "$strip_cmd" -s "zstd-${ZSTD_VERSION}/programs/zstd"
     mv "zstd-${ZSTD_VERSION}/programs/zstd" "$CURR_DIR/$output_file"
 
     chmod +x $CURR_DIR/$output_file
