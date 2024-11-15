@@ -23,6 +23,7 @@ cd skopeo-${SKOPEO_VERSION}
 build_skopeo() {
     local arch=$1
     local output_name=$2
+    local verify_arch=$3
     echo "Building skopeo for architecture: ${arch}"
 
     # Build with the specified architecture
@@ -45,19 +46,19 @@ build_skopeo() {
     fi
 
     # Check architecture
-    if file ../${output_name} | grep -q "${arch}"; then
-        echo "The binary ${output_name} is for the correct architecture (${arch})."
+    if file ${CURR_DIR}/${output_name} | grep -q "${verify_arch}, version 1 (SYSV), statically linked"; then
+        echo "The binary ${output_name} is for the correct architecture (${verify_arch})."
     else
-        echo "Error: The binary ${output_name} is not for the correct architecture (expected ${arch})."
+        echo "Error: The binary ${output_name} is not for the correct architecture (expected ${verify_arch})."
         exit 1
     fi
 }
 
 # Build for amd64
-build_skopeo "amd64" "${SKOPEO_PACKAGE_AMD64}"
+build_skopeo "amd64" "${SKOPEO_PACKAGE_AMD64}" "x86-64"
 
 # Build for arm64
-build_skopeo "arm64" "${SKOPEO_PACKAGE_ARM64}"
+build_skopeo "arm64" "${SKOPEO_PACKAGE_ARM64}" "ARM aarch64"
 
 cd ..
 echo "Builds completed. Binaries located in ${CURR_DIR}."
