@@ -91,8 +91,8 @@ for i in "${!ARCHITECTURES[@]}"; do
     if [ "$arch" == "aarch64" ]; then
         build_zlib
         build_liblzma
-        cf_flags="-static -O2 -pthread -I/tmp/libzlib-aarch64/include -I/tmp/liblzma-aarch64/include"
-        ld_flags="-static -L/tmp/libzlib-aarch64/lib -lz -L/tmp/liblzma-aarch64/lib -llzma"
+        cf_flags="-static -O2 -pthread -I/tmp/zlib-aarch64/include -I/tmp/liblzma-aarch64/include"
+        ld_flags="-static -L/tmp/zlib-aarch64/lib -lz -L/tmp/liblzma-aarch64/lib -llzma"
         cd $CURR_DIR
     fi
 
@@ -102,7 +102,7 @@ for i in "${!ARCHITECTURES[@]}"; do
 
     echo "Building zstd statically for $arch..."
     make clean -C "zstd-${ZSTD_VERSION}"
-    CC="$compiler" CFLAGS="$cf_flags" LDFLAGS="$ld_flags" make -j4 -C "zstd-${ZSTD_VERSION}" zstd
+    CC="$compiler" CFLAGS="${cf_flags}" LDFLAGS="${ld_flags}" make -j4 -C "zstd-${ZSTD_VERSION}" zstd
     "$strip_cmd" -s "zstd-${ZSTD_VERSION}/programs/zstd"
     mv "zstd-${ZSTD_VERSION}/programs/zstd" "$CURR_DIR/$output_file"
 
