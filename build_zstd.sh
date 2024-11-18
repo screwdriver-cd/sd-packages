@@ -37,6 +37,19 @@ check_binary() {
     fi
 }
 
+# build zlib for aarch64
+build_zlib() {
+    wget https://zlib.net/zlib-1.3.1.tar.gz
+    tar -xzf zlib-1.3.1.tar.gz
+    cd zlib-1.3.1
+    CC=aarch64-linux-gnu-gcc ./configure --prefix=/tmp/zlib-aarch64 --static
+    make
+    make install
+    file /tmp/zlib-aarch64/lib/libz.a
+    aarch64-linux-gnu-objdump -f /tmp/zlib-aarch64/lib/libz.a | grep architecture
+}
+
+
 # Ensure BUILD_DIR and ZSTD_VERSION are set
 if [ -z "$BUILD_DIR" ] || [ -z "$ZSTD_VERSION" ]; then
     echo "BUILD_DIR and ZSTD_VERSION must be set."
@@ -59,13 +72,22 @@ for i in "${!ARCHITECTURES[@]}"; do
     output_file="${OUTPUT_FILES[$i]}"
     strip_cmd="${STRIP[$i]}"
 
+    cf_flags="-static -O2 -pthread"
+    ld_flags="-static"
+
+    if [ "$arch" == "aarch64" ]; then
+        build_zlib
+        cf_flags="-static -O2 -pthread -I/tmp/zlib-aarch64/include"
+        ld_flags="-static -L/tmp/zlib-aarch64/lib -lz"
+    fi
+
     cp -r "zstd-${ZSTD_VERSION}" "$BUILD_DIR"
     cd "$BUILD_DIR"
     ls -lrt
 
     echo "Building zstd statically for $arch..."
     make clean -C "zstd-${ZSTD_VERSION}"
-    CC="$compiler" CFLAGS="-static -O2 -pthread" LDFLAGS="-static" make -j4 -C "zstd-${ZSTD_VERSION}" zstd
+    CC="$compiler" CFLAGS="$cf_flags" LDFLAGS="$ld_flags" make -j4 -C "zstd-${ZSTD_VERSION}" zstd
     "$strip_cmd" -s "zstd-${ZSTD_VERSION}/programs/zstd"
     mv "zstd-${ZSTD_VERSION}/programs/zstd" "$CURR_DIR/$output_file"
 
