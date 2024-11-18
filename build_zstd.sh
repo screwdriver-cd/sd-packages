@@ -47,6 +47,19 @@ build_zlib() {
     make install
     file /tmp/zlib-aarch64/lib/libz.a
     aarch64-linux-gnu-objdump -f /tmp/zlib-aarch64/lib/libz.a | grep architecture
+    cd ..
+}
+
+build_liblzma() {
+    wget https://tukaani.org/xz/xz-5.4.4.tar.gz
+    tar -xzf xz-5.4.4.tar.gz
+    cd xz-5.4.4
+    CC=aarch64-linux-gnu-gcc ./configure --prefix=/tmp/liblzma-aarch64 --host=aarch64-linux-gnu --enable-static --disable-shared
+    make
+    make install
+    file /tmp/liblzma-aarch64/lib/liblzma.a
+    aarch64-linux-gnu-objdump -f /tmp/liblzma-aarch64/lib/liblzma.a | grep architecture
+    cd ..
 }
 
 
@@ -77,8 +90,10 @@ for i in "${!ARCHITECTURES[@]}"; do
 
     if [ "$arch" == "aarch64" ]; then
         build_zlib
-        cf_flags="-static -O2 -pthread -I/tmp/zlib-aarch64/include"
-        ld_flags="-static -L/tmp/zlib-aarch64/lib -lz"
+        build_liblzma
+        cf_flags="-static -O2 -pthread -I/tmp/libzlib-aarch64/include -I/tmp/liblzma-aarch64/include"
+        ld_flags="-static -L/tmp/libzlib-aarch64/lib -lz -L/tmp/liblzma-aarch64/lib -llzma"
+        cd $CURR_DIR
     fi
 
     cp -r "zstd-${ZSTD_VERSION}" "$BUILD_DIR"
