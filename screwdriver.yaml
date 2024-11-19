@@ -46,14 +46,14 @@ jobs:
     image: buildpack-deps:oracular
     environment:
       ZSTD_VERSION: 1.5.6
-      BUILD_DIR: "/tmp/ztsd_static_build"
+      BUILD_DIR: "/tmp/zstd_static_build"
       USER_SHELL_BIN: bash
     steps:
       - make: ./build_zstd.sh
       - package: |
           a=($RELEASE_FILES)
-          tar -czf ${a[1]} ${BUILD_DIR}/zstd-linux-x86_64 && store-cli set ${a[1]} --type=cache --scope=event
-          tar -czf ${a[2]} ${BUILD_DIR}/zstd-linux-aarch64 && store-cli set ${a[2]} --type=cache --scope=event
+          tar -czf ${a[1]} ./zstd-linux-x86_64 && store-cli set ${a[1]} --type=cache --scope=event
+          tar -czf ${a[2]} ./zstd-linux-aarch64 && store-cli set ${a[2]} --type=cache --scope=event
           
   zstd-mac:
     requires: [~pr, ~commit]
