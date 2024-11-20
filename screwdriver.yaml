@@ -41,6 +41,11 @@ jobs:
           a=($RELEASE_FILES)
           tar -czf ${a[0]} ./${SKOPEO_PACKAGE_AMD64} && store-cli set ${a[0]} --type=cache --scope=event
           tar -czf ${a[4]} ./${SKOPEO_PACKAGE_ARM64} && store-cli set ${a[4]} --type=cache --scope=event
+    secrets:
+      # Pushing tags to Git
+      - GIT_KEY_BASE64
+      # Pushing releases to GitHub
+      - GITHUB_TOKEN
   zstd:
     requires: [~pr, ~commit]
     image: buildpack-deps:oracular
