@@ -16,25 +16,25 @@ jobs:
       - test-node20-sha256: |
           DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/node:20 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
-            echo "unable to get image node:20 sha256 digest"
+            echo "unable to get image node:20 sha256 digest."
             exit 1   v
           fi
       - test-alpine-sha256: |
           DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/alpine:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
-            echo "unable to get image alpine:latest sha256 digest"
+            echo "unable to get image alpine:latest sha256 digest."
             exit 1
           fi
       - test-busybox-sha256: |
           DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/busybox:latest | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
-            echo "unable to get image busybox:latest sha256 digest"
+            echo "unable to get image busybox:latest sha256 digest."
             exit 1
           fi
       - test-centos7-sha256: |
           DIGEST=$( ./${SKOPEO_PACKAGE_AMD64} inspect docker://docker.io/centos:7 | jq -r '.Digest')
           if [[ -z $DIGEST ]]; then
-            echo "unable to get image centos:7 sha256 digest"
+            echo "unable to get image centos:7 sha256 digest."
             exit 1
           fi   
       - package: |
