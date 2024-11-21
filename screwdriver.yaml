@@ -42,8 +42,11 @@ jobs:
           fi   
       - package: |
           a=($RELEASE_FILES)
-          tar -czf ${a[0]} ./${SKOPEO_PACKAGE_AMD64} && store-cli set ${a[0]} --type=cache --scope=event
-          tar -czf ${a[4]} ./${SKOPEO_PACKAGE_ARM64} && store-cli set ${a[4]} --type=cache --scope=event
+          mv ${SKOPEO_PACKAGE_AMD64} skopeo
+          tar -czf ${a[0]} ./skopeo && store-cli set ${a[0]} --type=cache --scope=event
+          rm skopeo
+          mv ${SKOPEO_PACKAGE_ARM64} skopeo
+          tar -czf ${a[4]} ./skopeo && store-cli set ${a[4]} --type=cache --scope=event
   zstd:
     requires: [~pr, ~commit]
     image: buildpack-deps:oracular
@@ -55,8 +58,11 @@ jobs:
       - make: ./build_zstd.sh
       - package: |
           a=($RELEASE_FILES)
-          tar -czf ${a[1]} ./zstd-linux-x86_64 && store-cli set ${a[1]} --type=cache --scope=event
-          tar -czf ${a[2]} ./zstd-linux-aarch64 && store-cli set ${a[2]} --type=cache --scope=event
+          mv zstd-linux-x86_64 zstd
+          tar -czf ${a[1]} ./zstd && store-cli set ${a[1]} --type=cache --scope=event
+          rm zstd
+          mv zstd-linux-aarch64 zstd
+          tar -czf ${a[2]} ./zstd && store-cli set ${a[2]} --type=cache --scope=event
           
   zstd-mac:
     requires: [~pr, ~commit]
