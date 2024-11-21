@@ -2,6 +2,9 @@ shared:
   environment:
     RELEASE_FILES: "skopeo-linux.tar.gz zstd-cli-linux.tar.gz zstd-cli-linux-aarch64.tar.gz zstd-cli-macosx.tar.gz skopeo-linux-aarch64.tar.gz"
 
+annotations:
+  screwdriver.cd/restrictPR: fork
+
 jobs:
   skopeo:
     requires: [~pr, ~commit]
