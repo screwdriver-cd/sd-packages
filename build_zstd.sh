@@ -39,7 +39,7 @@ check_binary() {
 
 # build zlib for aarch64
 build_zlib() {
-    wget https://zlib.net/zlib-1.3.1.tar.gz
+    wget https://zlib.net/fossils/zlib-1.3.1.tar.gz
     tar -xzf zlib-1.3.1.tar.gz
     cd zlib-1.3.1
     CC=aarch64-linux-gnu-gcc ./configure --prefix=/tmp/zlib-aarch64 --static
