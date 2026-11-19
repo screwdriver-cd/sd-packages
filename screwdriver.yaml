@@ -46,7 +46,7 @@ jobs:
           tar -czf ${a[4]} ./${SKOPEO_PACKAGE_ARM64} && store-cli set ${a[4]} --type=cache --scope=event
   zstd:
     requires: [~pr, ~commit]
-    image: buildpack-deps:oracular
+    image: buildpack-deps:noble
     environment:
       ZSTD_VERSION: 1.5.6
       BUILD_DIR: "/tmp/zstd_static_build"
